@@ -110,6 +110,7 @@ elapsedMillis ftm_irq_elapsed;
 
 void messageDrive(const f1tenth_race::drive_values& pwm) {
 
+  NVIC_DISABLE_IRQ(IRQ_FTM1);
   if(flagStop == false && flagManualOverride == false) {
     if(pwm.pwm_drive < pwm_thr_lowerlimit) {
       analogWrite(5,pwm_thr_lowerlimit);    //  Safety lower limit
@@ -129,20 +130,22 @@ void messageDrive(const f1tenth_race::drive_values& pwm) {
 
     drive_msg_recv_elapsed = 0;
   }
+  NVIC_ENABLE_IRQ(IRQ_FTM1);
 }
 
 void messageEmergencyStop(const std_msgs::Bool& flag) {
   flagStop = flag.data;
 
+  NVIC_DISABLE_IRQ(IRQ_FTM1);
   if(flagStop == true && flagManualOverride == false) {
     digitalWrite(13,HIGH);
 
     analogWrite(6,pwm_str_center_value);
     analogWrite(5,pwm_thr_center_value);
   }
+  NVIC_ENABLE_IRQ(IRQ_FTM1);
 
   if(flagStop == false) {
-    flagStop = false;
     flagManualOverride = false;
     digitalWrite(13,LOW);
   }
@@ -298,11 +301,13 @@ void loop() {
   nh.spinOnce();
 
   // drive command timeout
+  NVIC_DISABLE_IRQ(IRQ_FTM1);
   if ((flagManualOverride == false && flagStop == false && drive_msg_recv_elapsed > 300)
       || (flagManualOverride == true && ftm_irq_elapsed > 100)) {
     analogWrite(6,pwm_str_center_value);
     analogWrite(5,pwm_thr_center_value);
   }
+  NVIC_ENABLE_IRQ(IRQ_FTM1);
 }
 
 int main()
